@@ -1,0 +1,18 @@
+# Keep source MRI datasets and prepared training copies out of Git.
+data/
+image data set*/
+
+# Track the model used by the hosted demo; ignore other checkpoints and outputs.
+models/**
+!models/best_model.pth
+outputs/**
+
+# Python environments, caches, and local editor settings.
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.streamlit/secrets.toml
+.vscode/
+
