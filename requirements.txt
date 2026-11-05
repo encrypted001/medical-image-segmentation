@@ -1,0 +1,5 @@
+# Core project dependencies (Windows setup uses Python 3.14).
+numpy>=2.0,<3.0
+Pillow>=11.0,<13.0
+torch==2.14.0
+streamlit>=1.66,<2.0
