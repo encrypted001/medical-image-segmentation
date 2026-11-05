@@ -14,7 +14,7 @@ from typing import Literal
 
 import numpy as np
 import torch
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageEnhance, UnidentifiedImageError
 from torch.utils.data import Dataset, Subset
 
 
@@ -48,6 +48,7 @@ class SegmentationDataset(Dataset):
         mask_mode: MaskMode = "binary",
         background_value: int = 0,
         foreground_values: tuple[int, ...] = (255,),
+        augment: bool = False,
     ) -> None:
         self.image_dir = Path(image_dir)
         self.mask_dir = Path(mask_dir)
@@ -56,6 +57,7 @@ class SegmentationDataset(Dataset):
         self.mask_mode = mask_mode
         self.background_value = background_value
         self.foreground_values = tuple(foreground_values)
+        self.augment = augment
 
         if not self.image_dir.is_dir():
             raise FileNotFoundError(f"Image directory does not exist: {self.image_dir}")
@@ -156,6 +158,28 @@ class SegmentationDataset(Dataset):
                 f"Image/mask dimensions differ: {image_path} is {image.size}, "
                 f"but {mask_path} is {(raw_mask.shape[1], raw_mask.shape[0])}"
             )
+
+        if self.augment:
+            mask_image = Image.fromarray(raw_mask)
+            if random.random() < 0.5:
+                image = image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                mask_image = mask_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            angle = random.uniform(-10.0, 10.0)
+            image = image.rotate(
+                angle,
+                resample=Image.Resampling.BILINEAR,
+                fillcolor=0,
+            )
+            mask_image = mask_image.rotate(
+                angle,
+                resample=Image.Resampling.NEAREST,
+                fillcolor=self.background_value,
+            )
+            if random.random() < 0.5:
+                image = ImageEnhance.Brightness(image).enhance(random.uniform(0.9, 1.1))
+            if random.random() < 0.5:
+                image = ImageEnhance.Contrast(image).enhance(random.uniform(0.9, 1.1))
+            raw_mask = np.asarray(mask_image)
 
         if self.image_size is not None:
             height, width = self.image_size

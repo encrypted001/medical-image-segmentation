@@ -13,7 +13,7 @@ from time import monotonic
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from src.dataset import SegmentationDataset, split_by_group
 from src.model import UNet
@@ -47,6 +47,11 @@ def run_epoch(
     optimizer: torch.optim.Optimizer | None = None,
 ) -> tuple[float, float]:
     training = optimizer is not None
+    source_dataset = loader.dataset
+    while isinstance(source_dataset, Subset):
+        source_dataset = source_dataset.dataset
+    if isinstance(source_dataset, SegmentationDataset):
+        source_dataset.augment = training
     model.train(training)
     loss_total = 0.0
     dice_total = 0.0

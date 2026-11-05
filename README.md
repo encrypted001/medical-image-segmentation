@@ -19,17 +19,19 @@ for the mask and visualization.
 
 ## Model
 
-The included checkpoint was trained for 15 epochs on 535 deduplicated image-mask
-pairs from 19 patient groups. It uses RGB inputs resized to 128 × 128 and a
-U-Net with 8 base channels. Patient groups were kept separate across the
-training, validation, and test splits.
+The included checkpoint uses RGB inputs resized to 128 x 128 and a U-Net with
+8 base channels. Training used mild brightness/contrast changes, small rotations,
+and horizontal flips. The local dataset had 472 paired slices from 19 patient
+groups, split by patient into 326 training, 78 validation, and 68 test slices.
 
-On the held-out test split (68 slices from 3 patient groups), macro Dice was
-0.8456 across all slices and 0.7173 on the 23 slices with non-empty masks.
-The all-slice score includes empty masks. These results are an initial project
-evaluation and do not establish clinical reliability. Details are in
-`outputs/evaluation_results.csv`; the epoch log is in
-`outputs/training_history.csv`.
+On the grouped test split (68 slices from 3 patient groups), macro Dice was
+0.8607 and macro IoU was 0.8263. On the 23 slices with non-empty masks, mean
+Dice was 0.7620 and mean IoU was 0.6604. Four of 45 empty-mask slices had a
+non-empty prediction. The all-slice macro scores include empty masks and should
+be read alongside the positive-slice scores. This is an exploratory result from
+a small patient cohort; multiple experiments used the same split, so an external
+cohort is needed for an independent accuracy claim. These metrics do not establish
+clinical reliability.
 
 ## Retrain or evaluate
 
