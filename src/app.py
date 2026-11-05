@@ -8,7 +8,7 @@ import sys
 
 import streamlit as st
 import torch
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 # Streamlit Cloud may launch this file with ``src/`` as its import root.
 # Add the repository root so the project's ``src`` package is importable.
@@ -70,8 +70,15 @@ def main() -> None:
         st.error("Unsupported image format. Please upload PNG, JPEG, TIFF, BMP, or WebP.")
         return
 
+    # Some dataset TIFFs use a narrow intensity range and look nearly black
+    # in a browser. Stretch contrast for display only; inference uses `image`.
+    display_image = ImageOps.autocontrast(image.convert("RGB"), cutoff=1)
     st.subheader("Uploaded MRI")
-    st.image(image, caption=uploaded_file.name, width="stretch")
+    st.image(
+        display_image,
+        caption=f"{uploaded_file.name} (contrast adjusted for display)",
+        width="stretch",
+    )
     if not st.button("Generate segmentation", type="primary"):
         return
 
@@ -86,7 +93,7 @@ def main() -> None:
     try:
         model, checkpoint = _cached_model(str(CHECKPOINT_PATH), str(device))
         with st.spinner("Generating segmentation..."):
-            mask, overlay = predict_image(image, model, checkpoint)
+            mask, _ = predict_image(image, model, checkpoint)
     except (FileNotFoundError, ValueError, OSError, RuntimeError) as exc:
         st.error(f"Could not run prediction: {exc}")
         return
@@ -95,11 +102,20 @@ def main() -> None:
     with mask_column:
         st.subheader("Predicted mask")
         st.image(mask, caption="Binary mask", width="stretch")
+    red = Image.new("RGB", display_image.size, (255, 0, 0))
+    tinted = Image.blend(display_image, red, alpha=0.40)
+    overlay = Image.composite(tinted, display_image, mask)
     with overlay_column:
         st.subheader("Overlay")
         st.image(overlay, caption="Red indicates predicted foreground", width="stretch")
 
-    visualization = compose_visualization(image, mask, overlay)
+    if mask.getbbox() is None:
+        st.info(
+            "No foreground pixels were predicted for this slice. Some MRI slices have "
+            "empty reference masks, so compare the result with the correct labeled mask."
+        )
+
+    visualization = compose_visualization(display_image, mask, overlay)
     st.subheader("Side-by-side visualization")
     st.image(visualization, width="stretch")
 
